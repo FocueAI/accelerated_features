@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            // "program": "modules/training/train.py",
+            "module": "modules.training.train",
+            "args": ["--training_type","xfeat_synthetic", "--synthetic_root_path", "content/coco_20k","--ckpt_save_path","content/ckpts"],
+            "pythonPath": "/home/lenovo/anaconda3/envs/xfeat/bin/python",
+            "console": "integratedTerminal"
+        }
+    ]
+}
+
+
+
+// python3 -m modules.training.train --training_type xfeat_synthetic --synthetic_root_path content/coco_20k --ckpt_save_path content/ckpts
+// python3 -m modules.training.train 与 python3 modules/training/train.py

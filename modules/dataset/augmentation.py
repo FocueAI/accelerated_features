@@ -53,22 +53,22 @@ def generateRandomTPS(shape, grid = (8, 6), GLOBAL_MULTIPLIER = 0.3, prob = 0.5)
 
 def generateRandomHomography(shape, GLOBAL_MULTIPLIER = 0.3):
     #Generate random in-plane rotation [-theta,+theta]
-    theta = np.radians(np.random.uniform(-30, 30))
+    theta = np.radians(np.random.uniform(-30, 30))     # 产生随机旋转角度 [-30, 30]
 
     #Generate random scale in both x and y
-    scale_x, scale_y = np.random.uniform(0.35, 1.2, 2)
+    scale_x, scale_y = np.random.uniform(0.35, 1.2, 2) # 产生随机缩放比例 [0.35, 1.2]
 
     #Generate random translation shift
-    tx , ty = -shape[1]/2.0 , -shape[0]/2.0 
-    txn, tyn = np.random.normal(0, 120.0*GLOBAL_MULTIPLIER, 2) 
+    tx , ty = -shape[1]/2.0 , -shape[0]/2.0                    # 产生平移量
+    txn, tyn = np.random.normal(0, 120.0*GLOBAL_MULTIPLIER, 2) # 产生随机平移量
 
     c, s = np.cos(theta), np.sin(theta)
 
     #Affine coeffs
-    sx , sy = np.random.normal(0,0.6*GLOBAL_MULTIPLIER,2)
+    sx , sy = np.random.normal(0,0.6*GLOBAL_MULTIPLIER,2)      # 产生随机仿射系数
 
     #Projective coeffs
-    p1 , p2 = np.random.normal(0,0.006*GLOBAL_MULTIPLIER,2)
+    p1 , p2 = np.random.normal(0,0.006*GLOBAL_MULTIPLIER,2)     # 产生随机投影系数
 
 
     # Build Homography from parmeterizations
@@ -237,12 +237,12 @@ class AugmentationPipe(nn.Module):
               
             ######## Geometric Transformations
 
-            H = torch.tensor(np.array([generateRandomHomography(shape, difficulty) for b in range(self.batch_size)]),
+            H = torch.tensor(np.array([generateRandomHomography(shape, difficulty) for b in range(self.batch_size)]), # 随机模拟数据增强的单应性矩阵
                                dtype = torch.float32).to(self.device)
             
-            output = kornia.geometry.transform.warp_perspective(x, H,
+            output = kornia.geometry.transform.warp_perspective(x, H, # 对输入图像进行透视变换
                             dsize = shape, padding_mode = 'zeros')
-
+               
             #crop % of image boundaries each side to reduce invalid pixels after warps
             low_h = int(h * self.sides_crop); low_w = int(w*self.sides_crop)
             high_h = int(h*(1. - self.sides_crop)); high_w= int(w * (1. - self.sides_crop))

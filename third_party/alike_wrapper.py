@@ -7,10 +7,14 @@
 import sys
 import os
 
-ALIKE_PATH = (os.path.abspath(os.path.dirname(__file__) + '/ALIKE'))
+ALIKE_PATH = (os.path.abspath(os.path.dirname(__file__) + '/ALIKE_main'))
 sys.path.append(ALIKE_PATH)
 
+
+
+
 import torch
+# from alike import ALike
 from alike import ALike
 import cv2
 import numpy as np
