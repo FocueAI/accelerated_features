@@ -1,39 +1,22 @@
 class stitcher:
     @staticmethod
     def detect(cv_im_bgr):
-        ###################################################
-        res = xfeat.detectAndCompute(cv_im_bgr)[0]
-        kps, features = res["keypoints"], res["descriptors"]
-        
-        ####################################################
-        # # 转换为灰度图像
-        # cv_im_gray = cv2.cvtColor(cv_im_bgr, cv2.COLOR_BGR2GRAY)
-        # # sift = cv2.SIFI_create()
-        # sift = cv2.xfeatures2d.SIFT_create()
-        # kps, features = sift.detectAndCompute(cv_im_gray, None)
+        # 转换为灰度图像
+        cv_im_gray = cv2.cvtColor(cv_im_bgr, cv2.COLOR_BGR2GRAY)
+        # sift = cv2.SIFI_create()
+        sift = cv2.xfeatures2d.SIFT_create()
+        kps, features = sift.detectAndCompute(cv_im_gray, None)
         return kps, features
     @staticmethod
     def match(cv_im_bgr1, cv_im_bgr2):
-        # ------------------------------- begin ------------------------------------
         kps1, feats1 = stitcher.detect(cv_im_bgr1)
         kps2, feats2 = stitcher.detect(cv_im_bgr2)
-        index1, index2 = xfeat.match(feats1, feats2, min_cossim = 0.82)
-        src_points, dst_points = kps1[index1].cpu().numpy(), kps2[index2].cpu().numpy()
-        H, status = cv2.findHomography(src_points, # 源图像上的点集
-                                dst_points, # 目标图像上的点集
-                                cv2.RANSAC, threshold)
+        matcher = cv2.DescriptorMatcher_create("BruteForce")
+        matches = matcher.knnMatch(feats1,  # 查询图像的特征描述符
+                                   feats2,  # 训练图像（数据库图像）的特征描述符
+                                   k=2)     # 查询图像的每个特征点要在训练图像中找到2个最佳匹配
         
-        return H
-        
-        # -------------------------------- end ------------------------------------
-        # kps1, feats1 = stitcher.detect(cv_im_bgr1)
-        # kps2, feats2 = stitcher.detect(cv_im_bgr2)
-        # matcher = cv2.DescriptorMatcher_create("BruteForce")
-        # matches = matcher.knnMatch(feats1,  # 查询图像的特征描述符
-        #                            feats2,  # 训练图像（数据库图像）的特征描述符
-        #                            k=2)     # 查询图像的每个特征点要在训练图像中找到2个最佳匹配
-        
-        # return kps1,kps2,matches  
+        return kps1,kps2,matches  
     @staticmethod
     def match_keypoints(kps1,kps2,matches,ratio,threshold):
         
@@ -90,14 +73,16 @@ class stitcher:
     
     @staticmethod
     def do(src_cv_im_bgr, dst_cv_im_bgr, ratio=0.8, threshold=3):
-        HH = stitcher.match(src_cv_im_bgr, dst_cv_im_bgr)
-        # H,status, good = stitcher.match_keypoints(kps1,kps2,matches,ratio,threshold)
+        kps1,kps2,matches =stitcher.match(src_cv_im_bgr, dst_cv_im_bgr)
+        H,status, good = stitcher.match_keypoints(kps1,kps2,matches,ratio,threshold)
         if H is not None:
             return stitcher.stitch(src_cv_im_bgr, dst_cv_im_bgr, H)
         return None
 #------------------------------------------------------------------------------------- 调用-------------------------------------------------------------------------------------
-img0_pth = "/mnt/disk2/projects/expore/LoFTR-train/assets/books/wz0602001-1.jpg"
-img1_pth = "/mnt/disk2/projects/expore/LoFTR-train/assets/books/wz0602001-2.jpg"
+# img0_pth = "/mnt/disk2/projects/expore/LoFTR-train/assets/books/wz0602001-1.jpg"
+# img1_pth = "/mnt/disk2/projects/expore/LoFTR-train/assets/books/wz0602001-2.jpg"
+img0_pth = r"/mnt/disk3/projects/expore/accelerated_features/assets/books/wz0602001-01-01.jpg"
+img1_pth = r"/mnt/disk3/projects/expore/accelerated_features/assets/books/wz0602001-01-02.jpg"
 src_im = cv2.imread(img0_pth)
 dst_im = cv2.imread(img1_pth)
 stitch_im = stitcher.do(src_im, dst_im)
