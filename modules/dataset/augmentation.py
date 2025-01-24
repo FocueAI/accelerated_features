@@ -125,8 +125,8 @@ class AugmentationPipe(nn.Module):
 
         list_augmentation = [
                         #kornia.augmentation.RandomChannelShuffle(p=0.5),
-                        kornia.augmentation.ColorJitter(0.15, 0.15, 0.15, 0.15, p=1.),
-                        kornia.augmentation.RandomEqualize(p = 0.4),
+                        kornia.augmentation.ColorJitter(0.15, 0.15, 0.15, 0.15, p=1.),  # 随机调整图像的亮度、对比度和饱和度
+                        kornia.augmentation.RandomEqualize(p = 0.4), # 随机对图像做 直方图均衡化 ====> 可以模拟不同光照条件下的图像变化，增强模型对光照变换的适应能力
                         kornia.augmentation.RandomGaussianBlur(p = 0.3, sigma = (2.0, 2.0), kernel_size = (7,7))
                         ]
         if photometric is False:
@@ -231,7 +231,7 @@ class AugmentationPipe(nn.Module):
             difficulty = 0.
 
         with torch.no_grad():
-            x = (x/255.).to(self.device)
+            x = (x/255.).to(self.device) # x.shape = torch.Size([batch=10, ch=3, im_h=608, im_w=800])
             b, c, h, w = x.shape
             shape = (h, w)
               
@@ -240,13 +240,13 @@ class AugmentationPipe(nn.Module):
             H = torch.tensor(np.array([generateRandomHomography(shape, difficulty) for b in range(self.batch_size)]), # 随机模拟数据增强的单应性矩阵
                                dtype = torch.float32).to(self.device)
             
-            output = kornia.geometry.transform.warp_perspective(x, H, # 对输入图像进行透视变换
+            output = kornia.geometry.transform.warp_perspective(x, H, # 对输入图像进行透视变换   output.shape = torch.Size([10, 3, 608, 800])  <====> 变换前后的图像大小一致
                             dsize = shape, padding_mode = 'zeros')
                
             #crop % of image boundaries each side to reduce invalid pixels after warps
-            low_h = int(h * self.sides_crop); low_w = int(w*self.sides_crop)
+            low_h = int(h * self.sides_crop); low_w = int(w*self.sides_crop)  # ================> self.sides_crop = 0.1
             high_h = int(h*(1. - self.sides_crop)); high_w= int(w * (1. - self.sides_crop))
-            output = output[..., low_h:high_h, low_w:high_w]
+            output = output[..., low_h:high_h, low_w:high_w]  # 剪切 图像 四周的边界
             x = x[..., low_h:high_h, low_w:high_w]
 
             #apply TPS if desired:
@@ -265,20 +265,20 @@ class AugmentationPipe(nn.Module):
 
                 output = warp_image_tps(output, src, weights, A)
 
-            output = F.interpolate(output, self.out_resolution[::-1], mode = 'nearest')
-            x = F.interpolate(x, self.out_resolution[::-1], mode = 'nearest')
+            output = F.interpolate(output, self.out_resolution[::-1], mode = 'nearest') # output.shape=torch.Size([10, 3, 608, 800])
+            x = F.interpolate(x, self.out_resolution[::-1], mode = 'nearest')           # x.shape=torch.Size([10, 3, 608, 800])
 
-            mask = ~torch.all(output == 0, dim=1, keepdim=True)
+            mask = ~torch.all(output == 0, dim=1, keepdim=True)   # 变换后的图像的 黑色区域 设置为 False    ------>    torch.Size([10, 1, 608, 800])
             mask = mask.expand(-1,3,-1,-1)
 
             # Make-up invalid regions with texture from the batch
             rv = 1 if not TPS else 2
-            output_shifted = torch.roll(x, rv, 0)
+            output_shifted = torch.roll(x, rv, 0) # 图像的顺序往前 滚一个单位
             output[~mask] = output_shifted[~mask]
             mask = mask[:, 0, :, :]
 
             ######## Photometric Transformations
-            output = self.aug_list(output)
+            output = self.aug_list(output)  # 数据增强
 
             b, c, h, w = output.shape
             #Correlated Gaussian Noise

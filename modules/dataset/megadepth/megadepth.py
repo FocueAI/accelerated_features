@@ -24,7 +24,7 @@ class MegaDepthDataset(Dataset):
                  npz_path,
                  mode='train',
                  min_overlap_score = 0.3, #0.3,
-                 max_overlap_score = 1.0, #1,
+                 max_overlap_score = 1.01, #1,
                  load_depth = True,
                  img_resize = (800,608), #or None
                  df=32,
@@ -56,6 +56,8 @@ class MegaDepthDataset(Dataset):
         if mode == 'test' and min_overlap_score != 0:
             min_overlap_score = 0
         self.scene_info = np.load(npz_path, allow_pickle=True)
+        self.scene_info = dict(self.scene_info)
+        
         self.pair_infos = self.scene_info['pair_infos'].copy()
         del self.scene_info['pair_infos']
         self.pair_infos = [pair_info for pair_info in self.pair_infos if pair_info[1] > min_overlap_score and pair_info[1] < max_overlap_score]
@@ -67,17 +69,21 @@ class MegaDepthDataset(Dataset):
         self.img_resize = img_resize
         self.df = df
         self.img_padding = img_padding
-        self.depth_max_size = 2000 if depth_padding else None  # the upperbound of depthmaps size in megadepth.
-
+        # self.depth_max_size = 2000 if depth_padding else None  # the upperbound of depthmaps size in megadepth.
+        self.depth_max_size = 4000 if depth_padding else None  # the upperbound of depthmaps size in megadepth.
+        
+        
         # for training LoFTR
         self.augment_fn = augment_fn if mode == 'train' else None
         self.coarse_scale = getattr(kwargs, 'coarse_scale', 0.125)
         #pdb.set_trace()
         for idx in range(len(self.scene_info['image_paths'])):
-            self.scene_info['image_paths'][idx] = fix_path_from_d2net(self.scene_info['image_paths'][idx])
+            # self.scene_info['image_paths'][idx] = fix_path_from_d2net(self.scene_info['image_paths'][idx])
+            self.scene_info['image_paths'][idx] = self.scene_info['image_paths'][idx]
 
         for idx in range(len(self.scene_info['depth_paths'])):
-            self.scene_info['depth_paths'][idx] = fix_path_from_d2net(self.scene_info['depth_paths'][idx])
+            # self.scene_info['depth_paths'][idx] = fix_path_from_d2net(self.scene_info['depth_paths'][idx])
+            self.scene_info['depth_paths'][idx] = self.scene_info['depth_paths'][idx]
 
 
     def __len__(self):
@@ -87,8 +93,8 @@ class MegaDepthDataset(Dataset):
         (idx0, idx1), overlap_score, central_matches = self.pair_infos[idx % len(self)]
 
         # read grayscale image and mask. (1, h, w) and (h, w)
-        img_name0 = osp.join(self.root_dir, self.scene_info['image_paths'][idx0])
-        img_name1 = osp.join(self.root_dir, self.scene_info['image_paths'][idx1])
+        img_name0 = osp.join(self.root_dir, self.mode, self.scene_info['image_paths'][idx0])
+        img_name1 = osp.join(self.root_dir, self.mode, self.scene_info['image_paths'][idx1])
         
         # TODO: Support augmentation & handle seeds for each worker correctly.
         image0, mask0, scale0 = read_megadepth_gray(
@@ -102,19 +108,19 @@ class MegaDepthDataset(Dataset):
             # read depth. shape: (h, w)
             if self.mode in ['train', 'val']:
                 depth0 = read_megadepth_depth(
-                    osp.join(self.root_dir, self.scene_info['depth_paths'][idx0]), pad_to=self.depth_max_size)
+                    osp.join(self.root_dir, self.mode, self.scene_info['depth_paths'][idx0]), pad_to=self.depth_max_size)
                 depth1 = read_megadepth_depth(
-                    osp.join(self.root_dir, self.scene_info['depth_paths'][idx1]), pad_to=self.depth_max_size)
+                    osp.join(self.root_dir, self.mode, self.scene_info['depth_paths'][idx1]), pad_to=self.depth_max_size)
             else:
                 depth0 = depth1 = torch.tensor([])
 
             # read intrinsics of original size
-            K_0 = torch.tensor(self.scene_info['intrinsics'][idx0].copy(), dtype=torch.float).reshape(3, 3)
-            K_1 = torch.tensor(self.scene_info['intrinsics'][idx1].copy(), dtype=torch.float).reshape(3, 3)
+            K_0 = torch.tensor(self.scene_info['intrinsics'][idx0].copy().astype(np.float64), dtype=torch.float).reshape(3, 3)
+            K_1 = torch.tensor(self.scene_info['intrinsics'][idx1].copy().astype(np.float64), dtype=torch.float).reshape(3, 3)
 
             # read and compute relative poses
-            T0 = self.scene_info['poses'][idx0]
-            T1 = self.scene_info['poses'][idx1]
+            T0 = self.scene_info['poses'][idx0].astype(np.float64)
+            T1 = self.scene_info['poses'][idx1].astype(np.float64)
             T_0to1 = torch.tensor(np.matmul(T1, np.linalg.inv(T0)), dtype=torch.float)[:4, :4]  # (4, 4)
             T_1to0 = T_0to1.inverse()
 

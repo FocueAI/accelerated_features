@@ -117,26 +117,52 @@ def spvs_coarse(data, scale = 8):
 
     #Remove repeated correspondences - this is important for network convergence
     corrs = []
+    ## -------------------------------------------------------------------------------------------------------------------
     for pts in batched_corrs:
         lut_mat12 = torch.ones((h1, w1, 4), device = device, dtype = torch.float32) * -1
         lut_mat21 = torch.clone(lut_mat12)
+         ########### ------------------------- 增加提出坏数据的逻辑 --------------------begin------------------------ #################
+        pts = pts[( (pts[:,1] <=h1).bool() & (pts[:,0] <= w1).bool() & (pts[:,2] <=h1).bool() & (pts[:,3] <= w1).bool()  )]
+
+        
+        ########### ------------------------- 增加提出坏数据的逻辑 ----------------------end---------------------- #################
+        
         src_pts = pts[:, :2] / scale
         tgt_pts = pts[:, 2:] / scale
-        try:
-            lut_mat12[src_pts[:,1].long(), src_pts[:,0].long()] = torch.cat([src_pts, tgt_pts], dim=1)
-            mask_valid12 = torch.all(lut_mat12 >= 0, dim=-1)
-            points = lut_mat12[mask_valid12]
 
-            #Target-src check
-            src_pts, tgt_pts = points[:, :2], points[:, 2:]
-            lut_mat21[tgt_pts[:,1].long(), tgt_pts[:,0].long()] = torch.cat([src_pts, tgt_pts], dim=1)
-            mask_valid21 = torch.all(lut_mat21 >= 0, dim=-1)
-            points = lut_mat21[mask_valid21]
+        lut_mat12[src_pts[:,1].long(), src_pts[:,0].long()] = torch.cat([src_pts, tgt_pts], dim=1)
+        mask_valid12 = torch.all(lut_mat12 >= 0, dim=-1)
+        points = lut_mat12[mask_valid12]
 
-            corrs.append(points)
-        except:
-            pdb.set_trace()
-            print('..')
+        #Target-src check
+        src_pts, tgt_pts = points[:, :2], points[:, 2:]
+        lut_mat21[tgt_pts[:,1].long(), tgt_pts[:,0].long()] = torch.cat([src_pts, tgt_pts], dim=1) 
+        mask_valid21 = torch.all(lut_mat21 >= 0, dim=-1)
+        points = lut_mat21[mask_valid21]
+
+        corrs.append(points)
+
+    ## ------------------------------------------------------ 原来的 ------------------------------------------------------
+    # for pts in batched_corrs:
+    #     lut_mat12 = torch.ones((h1, w1, 4), device = device, dtype = torch.float32) * -1
+    #     lut_mat21 = torch.clone(lut_mat12)
+    #     src_pts = pts[:, :2] / scale
+    #     tgt_pts = pts[:, 2:] / scale
+    #     try:
+    #         lut_mat12[src_pts[:,1].long(), src_pts[:,0].long()] = torch.cat([src_pts, tgt_pts], dim=1)
+    #         mask_valid12 = torch.all(lut_mat12 >= 0, dim=-1)
+    #         points = lut_mat12[mask_valid12]
+
+    #         #Target-src check
+    #         src_pts, tgt_pts = points[:, :2], points[:, 2:]
+    #         lut_mat21[tgt_pts[:,1].long(), tgt_pts[:,0].long()] = torch.cat([src_pts, tgt_pts], dim=1) 
+    #         mask_valid21 = torch.all(lut_mat21 >= 0, dim=-1)
+    #         points = lut_mat21[mask_valid21]
+
+    #         corrs.append(points)
+    #     except:
+    #         pdb.set_trace()
+    #         print('..')
 
     #Plot for debug purposes    
     # for i in range(len(corrs)):

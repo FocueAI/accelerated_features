@@ -7,7 +7,8 @@ import argparse
 import os
 import time
 import sys
-
+# os.environ['TORCH_USE_CUDA_DSA'] = "1"
+# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 def parse_arguments():
     parser = argparse.ArgumentParser(description="XFeat training script.")
 
@@ -97,8 +98,8 @@ class Trainer():
                                         out_resolution = training_res, 
                                         warp_resolution = training_res,
                                         sides_crop = 0.1,
-                                        max_num_imgs = 3_000,
-                                        num_test_imgs = 5,
+                                        max_num_imgs = 2_000,
+                                        num_test_imgs = 50,
                                         photometric = True,
                                         geometric = True,
                                         reload_step = 4_000
@@ -110,10 +111,11 @@ class Trainer():
 
         ##################### MEGADEPTH INIT ##########################
         if model_name in ('xfeat_default', 'xfeat_megadepth'):
-            TRAIN_BASE_PATH = f"{megadepth_root_path}/train_data/megadepth_indices"
-            TRAINVAL_DATA_SOURCE = f"{megadepth_root_path}/MegaDepth_v1"
+            TRAIN_BASE_PATH = f"{megadepth_root_path}"  # 目前不知道该路径的作用
+            TRAINVAL_DATA_SOURCE = f"{megadepth_root_path}"  # 目前不知道该路径的作用
 
-            TRAIN_NPZ_ROOT = f"{TRAIN_BASE_PATH}/scene_info_0.1_0.7"
+            # TRAIN_NPZ_ROOT = f"{TRAIN_BASE_PATH}/scene_info_0.1_0.7"
+            TRAIN_NPZ_ROOT = f"{TRAIN_BASE_PATH}/index/scene_info"  # 
 
             npz_paths = glob.glob(TRAIN_NPZ_ROOT + '/*.npz')[:]
             data = torch.utils.data.ConcatDataset( [MegaDepthDataset(root_dir = TRAINVAL_DATA_SOURCE,
@@ -147,7 +149,7 @@ class Trainer():
         p1s, p2s, H1, H2 = None, None, None, None
         d = None
 
-        if self.augmentor is not None:
+        if self.augmentor is not None: # go this way!!!
             p1s, p2s, H1, H2 = make_batch(self.augmentor, difficulty)
         
         if self.data_iter is not None:
@@ -207,6 +209,7 @@ class Trainer():
                 #Check if batch is corrupted with too few correspondences
                 is_corrupted = False
                 for p in positives_c:
+                    # print(f'p:{len(p)}')
                     if len(p) < 30:
                         is_corrupted = True
 
@@ -214,8 +217,9 @@ class Trainer():
                     continue
 
                 #Forward pass
-                feats1, kpts1, hmap1 = self.net(p1)
-                feats2, kpts2, hmap2 = self.net(p2)
+                # 特征向量，关键点，  热图
+                feats1,    kpts1,    hmap1 = self.net(p1)
+                feats2,    kpts2,    hmap2 = self.net(p2)
 
                 loss_items = []
 
@@ -252,7 +256,7 @@ class Trainer():
                         acc_coarse_0 = check_accuracy(m1, m2)
 
                 acc_coarse = check_accuracy(m1, m2)
-
+                # print(f'acc_coarse_0: {acc_coarse_0} acc_coarse: {acc_coarse}')
                 nb_coarse = len(m1)
                 loss = torch.cat(loss_items, -1).mean()
                 loss_coarse = loss_ds.item()

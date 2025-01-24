@@ -16,7 +16,7 @@ def make_batch(augmentor, difficulty = 0.3, train = True):
             img = torch.tensor(img_list[rdidx], dtype=torch.float32).permute(2,0,1).to(augmentor.device).unsqueeze(0)
             batch_images.append(img)
 
-        batch_images = torch.cat(batch_images)
+        batch_images = torch.cat(batch_images) # .shape = torch.Size([10, 3, 608, 800])
 
         p1, H1 = augmentor(batch_images, difficulty)
         p2, H2 = augmentor(batch_images, difficulty, TPS = True, prob_deformation = 0.7)
@@ -62,7 +62,7 @@ def get_corresponding_pts(p1, p2, H, H2, augmentor, h, w, crop = None):
         rh, rw = p1.shape[-2:]
         ratio = torch.tensor([rw/w, rh/h], device = p1.device)
 
-        (H, mask1) = H
+        (H, mask1) = H    # H.shape=torch.Size([10, 3, 3]), maks1.shape=torch.Size([10, 608, 800])
         (H2, src, W, A, mask2) = H2
 
         #Generate meshgrid of target pts
