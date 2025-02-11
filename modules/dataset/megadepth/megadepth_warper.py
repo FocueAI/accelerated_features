@@ -122,7 +122,7 @@ def spvs_coarse(data, scale = 8):
         lut_mat12 = torch.ones((h1, w1, 4), device = device, dtype = torch.float32) * -1
         lut_mat21 = torch.clone(lut_mat12)
          ########### ------------------------- 增加提出坏数据的逻辑 --------------------begin------------------------ #################
-        pts = pts[( (pts[:,1] <=h1).bool() & (pts[:,0] <= w1).bool() & (pts[:,2] <=h1).bool() & (pts[:,3] <= w1).bool()  )]
+        pts = pts[( (pts[:,1] <=H1).bool() & (pts[:,0] <= W1).bool() & (pts[:,2] <=H1).bool() & (pts[:,3] <= W1).bool()  )]
 
         
         ########### ------------------------- 增加提出坏数据的逻辑 ----------------------end---------------------- #################

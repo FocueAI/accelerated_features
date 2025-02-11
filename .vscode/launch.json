@@ -8,9 +8,14 @@
             "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",
-            // "program": "modules/training/train.py",
             "module": "modules.training.train",
-            "args": ["--training_type","xfeat_synthetic", "--synthetic_root_path", "content/coco_20k","--ckpt_save_path","content/ckpts"],
+            // 自监督的 人造数据 无需打标
+            // ---- 上图东馆机器人抓取的数据
+            // "args": ["--training_type","xfeat_synthetic", "--synthetic_root_path", "content/robot_take_img","--ckpt_save_path","content/ckpts"], // 
+            // 训练 megadepth 格式的数据
+            "args": ["--training_type","xfeat_megadepth", "--megadepth_root_path", "content/tot_sh_east_dataset","--ckpt_save_path","content/ckpts_2_11"],
+            // 自监督数据 + megadepth格式 混合训练
+            // "args": ["--training_type", "xfeat_default", "--megadepth_root_path" ,"content/tot_sh_east_dataset","--synthetic_root_path", "content/coco_20k","--ckpt_save_path","content/ckpts"],
             "pythonPath": "/home/lenovo/anaconda3/envs/xfeat/bin/python",
             "console": "integratedTerminal"
         }
@@ -18,6 +23,16 @@
 }
 
 
-
+// ------------------------- 训练自监督数据（人造数据）
+// ------------------------- coco数据
 // python3 -m modules.training.train --training_type xfeat_synthetic --synthetic_root_path content/coco_20k --ckpt_save_path content/ckpts
+// ------------------------- 上海东馆抓取的数据
+// python3 -m modules.training.train --training_type xfeat_synthetic --synthetic_root_path content/robot_take_img --ckpt_save_path content/ckpts_1_23
+
 // python3 -m modules.training.train 与 python3 modules/training/train.py
+
+// ------------------------- 训练自监督（人造数据） + megadepth格式的数据
+//python3 -m modules.training.train --training_type xfeat_default --megadepth_root_path content/tot_sh_east_dataset    --synthetic_root_path content/coco_20k --ckpt_save_path content/ckpts_1_22 
+
+// megadepth格式的数据的训练
+// python3 -m modules.training.train --training_type xfeat_megadepth --megadepth_root_path content/tot_sh_east_dataset   --ckpt_save_path content/ckpts_2_11

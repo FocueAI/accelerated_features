@@ -157,7 +157,7 @@ class Trainer():
 
         with tqdm.tqdm(total=self.steps) as pbar:
             for i in range(self.steps):
-                if not self.dry_run:
+                if not self.dry_run: # True
                     if self.data_iter is not None:
                         try:
                             # Get the next MD batch
